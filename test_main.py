@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from main import app, tasks_db, next_id
+from main import app, reset_database
 import pytest
 
 
@@ -9,10 +9,7 @@ client = TestClient(app)
 @pytest.fixture(autouse=True)
 def reset_tasks():
     """Reset tasks before each test"""
-    tasks_db.clear()
-    # Reset next_id to 1
-    import main
-    main.next_id = 1
+    reset_database()
     yield
 
 

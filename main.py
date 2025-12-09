@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -33,6 +33,13 @@ tasks_db: List[Task] = []
 next_id = 1
 
 
+def reset_database():
+    """Reset the in-memory database (useful for testing)"""
+    global next_id
+    tasks_db.clear()
+    next_id = 1
+
+
 @app.post("/tasks", response_model=Task, status_code=201)
 def create_task(task_create: TaskCreate):
     """Create a new task"""
@@ -43,7 +50,7 @@ def create_task(task_create: TaskCreate):
         title=task_create.title,
         description=task_create.description,
         done=False,
-        created_at=datetime.now()
+        created_at=datetime.now(timezone.utc)
     )
     tasks_db.append(task)
     next_id += 1
@@ -86,9 +93,8 @@ def update_task(task_id: int, task_update: TaskUpdate):
 @app.delete("/tasks/{task_id}", status_code=204)
 def delete_task(task_id: int):
     """Delete a task"""
-    for i, task in enumerate(tasks_db):
-        if task.id == task_id:
-            tasks_db.pop(i)
-            return
+    initial_length = len(tasks_db)
+    tasks_db[:] = [task for task in tasks_db if task.id != task_id]
     
-    raise HTTPException(status_code=404, detail="Task not found")
+    if len(tasks_db) == initial_length:
+        raise HTTPException(status_code=404, detail="Task not found")
